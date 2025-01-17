@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVGマップページ</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #map-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            touch-action: none; /* スクロールを無効にしてタッチ操作を有効にする */
+        }
+        #map {
+            position: absolute;
+            transform-origin: center center; /* ズームの中心を地図の中央にする */
+            cursor: grab;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map-container">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+        <rect x="0" y="0" width="500" height="500" fill="lightblue" />
+        <circle cx="250" cy="250" r="50" fill="red" />
+        <!-- ここに追加のSVG内容を追加できます -->
+    </svg>
+</div>
+
+<script>
+    let map = document.getElementById('map');
+    let mapContainer = document.getElementById('map-container');
+    let isDragging = false;
+    let startX, startY, offsetX = 0, offsetY = 0;
+
+    // 初期ズームスケール
+    let scale = 1;
+    // ピンチイン・ピンチアウトの操作用
+    let initialDistance = null;
+    let initialScale = 1;
+
+    // ドラッグ機能
+    map.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].pageX - offsetX;
+            startY = e.touches[0].pageY - offsetY;
+            map.style.cursor = 'grabbing';
+        } else if (e.touches.length === 2) {
+            initialDistance = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            initialScale = scale; // 現在のスケールを保存
+        }
+    });
+
+    map.addEventListener('touchmove', (e) => {
+        if (isDragging && e.touches.length === 1) {
+            offsetX = e.touches[0].pageX - startX;
+            offsetY = e.touches[0].pageY - startY;
+            map.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        } else if (e.touches.length === 2 && initialDistance) {
+            let currentDistance = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            scale = initialScale * (currentDistance / initialDistance);
+            scale = Math.max(0.5, Math.min(3, scale)); // ズームの範囲を制限
+            map.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
+    });
+
+    map.addEventListener('touchend', () => {
+        if (isDragging) {
+            isDragging = false;
+            map.style.cursor = 'grab';
+        }
+        initialDistance = null;
+    });
+
+    // ピンチイン・ピンチアウトの機能
+    map.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        let zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        scale *= zoomFactor;
+        scale = Math.max(0.5, Math.min(3, scale)); // ズームの範囲を制限
+        map.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    });
+</script>
+
+</body>
+</html>
